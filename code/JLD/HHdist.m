@@ -12,7 +12,11 @@ if ~isSymmetric
     for i = 1:m
         for j = 1:n
             if strcmp(metric,'JLD')
-                D(i,j) = log(det((HH1{i}+HH2{j})/2)) - 0.5*log(det(HH1{i})) -0.5*log(det(HH2{j}));
+%                 D(i,j) = log(det((HH1{i}+HH2{j})/2)) - 0.5*log(det(HH1{i})) -0.5*log(det(HH2{j}));
+                D(i,j) = JBLD(HH1{i},HH2{j});
+%                 D(i,j) = log(det((HH1{i}+HH2{j})/2)/sqrt(det(HH1{i})*det(HH2{j})));
+%                     M = HH2{j}/HH1{i};
+%                     D(i,j) = log(det((eye(size(M))+M)/2)/sqrt(det(M)));
             elseif strcmp(metric,'binlong')
                 D(i,j) = 2 - norm(HH1{i}+HH2{j},'fro');
             end
@@ -24,7 +28,11 @@ else
     for i = 1:m
         for j = i:m
             if strcmp(metric,'JLD')
-                D(i,j) = log(det((HH1{i}+HH2{j})/2)) - 0.5*log(det(HH1{i})) -0.5*log(det(HH2{j}));
+%                 D(i,j) = log(det((HH1{i}+HH2{j})/2)) - 0.5*log(det(HH1{i})) -0.5*log(det(HH2{j}));
+                D(i,j) = JBLD(HH1{i},HH2{j});
+%                 D(i,j) = log(det((HH1{i}+HH2{j})/2)/sqrt(det(HH1{i})*det(HH2{j})));
+%                 M = HH2{j}/HH1{i};
+%                 D(i,j) = log(det((eye(size(M))+M)/2)/sqrt(det(M)));
             elseif strcmp(metric,'binlong')
                 D(i,j) = 2 - norm(HH1{i}+HH2{j},'fro');
             end

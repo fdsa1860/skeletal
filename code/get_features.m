@@ -27,7 +27,7 @@ function [features] = get_features(feature_type, joint_locations, body_model, n_
         
     elseif (strcmp(feature_type, 'JLD'))
 
-        features = getHH(joint_locations);
+        features = get_joint_features(joint_locations,body_model);
         
     else
         error('Unknown feature type');

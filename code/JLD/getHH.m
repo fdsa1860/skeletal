@@ -4,7 +4,7 @@ function HH = getHH(features,opt)
 s = size(features{1});
 
 % Hsize = 540;
-Hsize = 20*s(1);
+Hsize = 9*s(1);
 % Hsize = 7;
 
 if ~exist('opt','var')
@@ -29,7 +29,7 @@ for i=1:length(features)
     end
     HHt = HHt / norm(HHt,'fro');
     %     HHt = t * t';
-    I = 0.9*eye(size(HHt));
+    I = 0.25*eye(size(HHt));
     HH{i} = HHt + I;
 end
 
