@@ -93,15 +93,15 @@ data = load(loadname, 'features');
 HH = getHH(data.features);
 % HH_main = getHH_local(data.features);
 
-% correct data, uncomment this section if MSR if you want corrected data
-load o;
-[newHH,newSub,newAct] = getNewHH(o);    
-HH = [HH, newHH];
-subject_labels = [subject_labels; newSub];
-action_labels = [action_labels; newAct];
-HH(action_labels==20) = [];
-subject_labels(action_labels==20) = [];
-action_labels(action_labels==20) = [];
+% % correct data, uncomment this section if MSR if you want corrected data
+% load o;
+% [newHH,newSub,newAct] = getNewHH(o);    
+% HH = [HH, newHH];
+% subject_labels = [subject_labels; newSub];
+% action_labels = [action_labels; newAct];
+% HH(action_labels==20) = [];
+% subject_labels(action_labels==20) = [];
+% action_labels(action_labels==20) = [];
 
 k = 4;
 opt.metric = 'JLD';
@@ -122,22 +122,25 @@ for set = 1:n_action_sets % uncomment if MSR
 %     actions = unique(action_labels);%  comment if MSR
 %     n_classes = length(unique(actions));% comment if MSR
 
-%     % clustering
+    % clustering
+    feat = chopFeature(data.features(action_ind));
+    HH_cluster = getHH(feat);
+    [label,HH_centers,sD] = ncutJLD(HH_cluster,n_classes,opt);
 %     [label,HH_centers,sD] = ncutJLD(HH(action_ind),n_classes,opt);
-%     gt = action_labels(action_ind)';
-%     v = perms(actions);
-%     acc = zeros(1,size(v,1));
-%     for i = 1:length(acc)
-%         acc(i) = nnz(v(i,label)==gt)/length(gt);
-%     end
-%     [accuracy,ind] = max(acc);
-%     accuracy
-%     label = v(ind,label);
-%     confusion_matrix = zeros(n_classes, n_classes);
-%     for i = 1:n_classes
-%         temp = find(gt == actions(i));
-%         confusion_matrix(i, :) = hist(label(temp), actions) / length(temp);
-%     end
+    gt = action_labels(action_ind)';
+    v = perms(actions);
+    acc = zeros(1,size(v,1));
+    for i = 1:length(acc)
+        acc(i) = nnz(v(i,label)==gt)/length(gt);
+    end
+    [accuracy,ind] = max(acc);
+    accuracy
+    label = v(ind,label);
+    confusion_matrix = zeros(n_classes, n_classes);
+    for i = 1:n_classes
+        temp = find(gt == actions(i));
+        confusion_matrix(i, :) = hist(label(temp), actions) / length(temp);
+    end
     
     
     total_accuracy = zeros(n_tr_te_splits, 1);
@@ -168,38 +171,58 @@ for set = 1:n_action_sets % uncomment if MSR
         unique_classes = unique(y_train);
         n_classes = length(unique_classes);
         % train NN
-%         HH_center = cell(1, n_classes);
-%         for ai = 1:n_classes
-%             X_tmp = X_train(y_train==unique_classes(ai));
-% %             HH_center{ai} = karcher(X_tmp{1:end});
-% %             HH_center{ai} = karchermean(X_tmp);
-%             HH_center{ai} = steinMean(cat(3,X_tmp{1:end}));
-% %             HH_center{ai} = incSteinMean(cat(3,X_tmp{1:end}));
-%             fprintf('processed %d/%d\n',ai,n_classes);
-%         end
-%         % test NN
-%         D2 = HHdist(HH_center,X_test,opt.metric);
-%         [~,ind] = min(D2);
-%         predicted_labels = unique_classes(ind);
-        % test KNN
-        K = 10;
-        D2 = HHdist(X_train, X_test, opt.metric);
-        [D1,ind] = sort(D2);
-        topLabel = y_train(ind(1:K,:));
-        topDist = D1(1:K,:);
-        W = 1./(topDist.^2);
-        predicted_labels = zeros(length(X_test),1);
-        for i = 1:size(topLabel,2)
-            uL = unique(topLabel(:,i));
-            wUL = zeros(length(uL),1);
-            for j = 1:length(uL)
-                wUL(j) = sum(W(topLabel(:,i)==uL(j),i));
-            end
-            [~,ii] = max(wUL);
-            predicted_labels(i) = uL(ii);
+        HH_center = cell(1, n_classes);
+%         cparams(1:n_classes) = struct ('prior',0,'alpha',0,'theta',0);
+        for ai = 1:n_classes
+            X_tmp = X_train(y_train==unique_classes(ai));
+%             HH_center{ai} = karcher(X_tmp{1:end});
+%             HH_center{ai} = karchermean(X_tmp);
+            HH_center{ai} = steinMean(cat(3,X_tmp{1:end}));
+%             HH_center{ai} = incSteinMean(cat(3,X_tmp{1:end}));
+%             d = HHdist(HH_center(ai),X_tmp,opt.metric);
+%             d(abs(d)<1e-6) = 1e-6;
+% %             phat = gamfit(d);
+%             phat = mle(d,'pdf',@gampdf,'start',[1 1],'lowerbound',[0 0],'upperbound',[1.5 inf]);
+%             cparams(ai).alpha = min(100,phat(1));
+%             if isinf(cparams(ai).alpha), keyboard;end
+%             cparams(ai).theta = max(0.01,phat(2));
+%             cparams(ai).prior = length(X_tmp) / length(X_train);
+            fprintf('processed %d/%d\n',ai,n_classes);
         end
+        % test NN
+        D2 = HHdist(HH_center,X_test,opt.metric);
+        [~,ind] = min(D2);
+        predicted_labels = unique_classes(ind);
+
+%         % test gamma voting
+%         D2 = HHdist(HH_center,X_test,opt.metric);
+%         P2 = zeros(size(D2));
+%         for ai = 1:size(D2,1)
+%             P2(ai,:) = gampdf(D2(ai,:),...
+%                 cparams(ai).alpha, cparams(ai).theta);
+%         end
+%         [~,ind] = max(P2);
+%         predicted_labels = unique_classes(ind);
+
+%         % test KNN
+%         K = 10;
+%         D2 = HHdist(X_train, X_test, opt.metric);
+%         [D1,ind] = sort(D2);
+%         topLabel = y_train(ind(1:K,:));
+% %         predicted_labels = mode(topLabel)';
+%         topDist = D1(1:K,:);
+%         W = 1./(topDist.^2);
+%         predicted_labels = zeros(length(X_test),1);
+%         for i = 1:size(topLabel,2)
+%             uL = unique(topLabel(:,i));
+%             wUL = zeros(length(uL),1);
+%             for j = 1:length(uL)
+%                 wUL(j) = sum(W(topLabel(:,i)==uL(j),i));
+%             end
+%             [~,ii] = max(wUL);
+%             predicted_labels(i) = uL(ii);
+%         end
         
-%         predicted_labels = mode(topLabel)';
         total_accuracy(si) = nnz(y_test==predicted_labels)/ length(y_test);
         class_wise_accuracy = zeros(1, n_classes);
         confusion_matrix = zeros(n_classes, n_classes);
