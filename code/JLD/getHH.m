@@ -7,8 +7,11 @@ s = size(features{1});
 Hsize = 9*s(1);
 % Hsize = 7;
 
+sigma = 0.25;
+
 if ~exist('opt','var')
     opt.H_structure = 'HHt';
+    opt.metric = 'JLD';
 end
 
 HH = cell(1,length(features));
@@ -28,9 +31,12 @@ for i=1:length(features)
         HHt = Ht * Ht';
     end
     HHt = HHt / norm(HHt,'fro');
-    %     HHt = t * t';
-    I = 0.25*eye(size(HHt));
-    HH{i} = HHt + I;
+    if strcmp(opt.metric,'JLD')
+        I = sigma*eye(size(HHt));
+        HH{i} = HHt + I;
+    elseif strcmp(opt.metric,'binlong')
+        HH{i} = HHt;
+    end
 end
 
 

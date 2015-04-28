@@ -91,7 +91,11 @@ action_labels = labels.action_labels;
 loadname = [directory, '/features'];
 data = load(loadname, 'features');
 
-HH = getHH(data.features);
+% opt.metric = 'JLD';
+opt.metric = 'binlong';
+opt.H_structure = 'HHt';
+
+HH = getHH(data.features,opt);
 % HH_main = getHH_local(data.features);
 
 % % correct data, uncomment this section if MSR if you want corrected data
@@ -107,8 +111,6 @@ HH = getHH(data.features);
 % action_labels(action_labels==20) = [];
 
 k = 4;
-% opt.metric = 'JLD';
-opt.metric = 'binlong';
 C_val = 1e5;
 results_dir = './res';
 for set = 1:n_action_sets % uncomment if MSR
@@ -150,6 +152,7 @@ for set = 1:n_action_sets % uncomment if MSR
     confusion_matrices = cell(n_tr_te_splits, 1);
     
     for si = 1:n_tr_te_splits
+        fprintf('Processing %d/%d ...\n',si,n_tr_te_splits);
         
         tr_subject_ind = ismember(subject_labels, tr_subjects(si,:));
         te_subject_ind = ismember(subject_labels, te_subjects(si,:));
@@ -200,8 +203,12 @@ for set = 1:n_action_sets % uncomment if MSR
         unique_classes = unique(y_train);
         n_classes = length(unique_classes);
         % train NN
+        tic
         D = HHdist(X_train,X_train,opt.metric); % uncomment if opt.metric=='binlong'
+        toc
+        tic
         centerInd = findCenters(D,y_train); % uncomment if opt.metric=='binlong'
+        toc
         HH_center = X_train(centerInd); % uncomment if opt.metric=='binlong'
 %         HH_center = cell(1, n_classes);
 % %         cparams(1:n_classes) = struct ('prior',0,'alpha',0,'theta',0);
