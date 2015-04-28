@@ -4,7 +4,7 @@ function HH = getHH(features,opt)
 s = size(features{1});
 
 % Hsize = 540;
-Hsize = 2*s(1);
+Hsize = 9*s(1);
 % Hsize = 7;
 
 if ~exist('opt','var')

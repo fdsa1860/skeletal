@@ -14,20 +14,24 @@ T = size(data,2);
 clf;
 
 
-
+% h = figure(1);
+% set(h,'Position',[300 300 200 400]);
 for t=1:T
     plot3(x(:,t),y(:,t),z(:,t),'o');
     
     set(gca,'DataAspectRatio',[1 1 1]);
 %     axis([0 400 0 400 0 400]);
     axis([-1 1 -1 1 -1 1]);
+    set(gca,'Position',[-0.3 0 1.5 1.2]);
     for j=1:19
         c1=J(1,j);
         c2=J(2,j);
         line([x(c1,t) x(c2,t)], [y(c1,t) y(c2,t)], [z(c1,t) z(c2,t)]);
     end
 
-    title([num2str(t) '/' num2str(T)]);
+%     axis tight;
+    axis off;
+%     title([num2str(t) '/' num2str(T)]);
     drawnow;
     pause(0.1);
     35;

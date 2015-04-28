@@ -51,21 +51,22 @@ tr_subjects = tr_info.tr_subjects;
 te_subjects = tr_info.te_subjects;
 end
 
-if dataset_idx==1
-    n_tr_te_splits = 20;
-    all_subjects = kron(1:10,ones(1,2));
-    all_instances = kron(ones(1,10),[1 2]);
-    te_subjects = zeros(20,1);
-    tr_subjects = zeros(20,19);
-    te_instances = zeros(20,1);
-    tr_instances = zeros(20,19);
-    for i = 1:20
-        te_subjects(i) = all_subjects(i);
-        tr_subjects(i,:) = all_subjects(setdiff(1:20,i));
-        te_instances(i) = all_instances(i);
-        tr_instances(i,:) = all_instances(setdiff(1:20,i));
-    end
-end
+% uncomment if UTKinect and if use LOOCV protocol
+% if dataset_idx==1
+%     n_tr_te_splits = 20;
+%     all_subjects = kron(1:10,ones(1,2));
+%     all_instances = kron(ones(1,10),[1 2]);
+%     te_subjects = zeros(20,1);
+%     tr_subjects = zeros(20,19);
+%     te_instances = zeros(20,1);
+%     tr_instances = zeros(20,19);
+%     for i = 1:20
+%         te_subjects(i) = all_subjects(i);
+%         tr_subjects(i,:) = all_subjects(setdiff(1:20,i));
+%         te_instances(i) = all_instances(i);
+%         tr_instances(i,:) = all_instances(setdiff(1:20,i));
+%     end
+% end
 
 if dataset_idx==3
     action_sets = tr_info.action_sets;
@@ -95,23 +96,27 @@ HH = getHH(data.features);
 
 % % correct data, uncomment this section if MSR if you want corrected data
 % load o;
-% [newHH,newSub,newAct] = getNewHH(o);    
+% [newFeat,newHH,newSub,newAct] = getNewHH(o);
+% data.features = [data.features; newFeat];
 % HH = [HH, newHH];
 % subject_labels = [subject_labels; newSub];
 % action_labels = [action_labels; newAct];
+% data.features(action_labels==20) = [];
 % HH(action_labels==20) = [];
 % subject_labels(action_labels==20) = [];
 % action_labels(action_labels==20) = [];
 
 k = 4;
-opt.metric = 'JLD';
+% opt.metric = 'JLD';
+opt.metric = 'binlong';
 C_val = 1e5;
 results_dir = './res';
 for set = 1:n_action_sets % uncomment if MSR
+% for set = 3
 % for set = 1:10 % uncomment if UCF
     
     actions = unique(action_sets{set}); % uncomment if MSR
-    actions = setdiff(actions,20); % uncomment if MSR
+%     actions = setdiff(actions,20); % uncomment if MSR
     n_classes = length(actions); % uncomment if MSR
     action_ind = ismember(action_labels, actions); % uncomment if MSR
 
@@ -122,25 +127,22 @@ for set = 1:n_action_sets % uncomment if MSR
 %     actions = unique(action_labels);%  comment if MSR
 %     n_classes = length(unique(actions));% comment if MSR
 
-    % clustering
-    feat = chopFeature(data.features(action_ind));
-    HH_cluster = getHH(feat);
-    [label,HH_centers,sD] = ncutJLD(HH_cluster,n_classes,opt);
+%     % clustering
 %     [label,HH_centers,sD] = ncutJLD(HH(action_ind),n_classes,opt);
-    gt = action_labels(action_ind)';
-    v = perms(actions);
-    acc = zeros(1,size(v,1));
-    for i = 1:length(acc)
-        acc(i) = nnz(v(i,label)==gt)/length(gt);
-    end
-    [accuracy,ind] = max(acc);
-    accuracy
-    label = v(ind,label);
-    confusion_matrix = zeros(n_classes, n_classes);
-    for i = 1:n_classes
-        temp = find(gt == actions(i));
-        confusion_matrix(i, :) = hist(label(temp), actions) / length(temp);
-    end
+%     gt = action_labels(action_ind)';
+%     v = perms(actions);
+%     acc = zeros(1,size(v,1));
+%     for i = 1:length(acc)
+%         acc(i) = nnz(v(i,label)==gt)/length(gt);
+%     end
+%     [accuracy,ind] = max(acc);
+%     accuracy
+%     label = v(ind,label);
+%     confusion_matrix = zeros(n_classes, n_classes);
+%     for i = 1:n_classes
+%         temp = find(gt == actions(i));
+%         confusion_matrix(i, :) = hist(label(temp), actions) / length(temp);
+%     end
     
     
     total_accuracy = zeros(n_tr_te_splits, 1);
@@ -162,6 +164,33 @@ for set = 1:n_action_sets % uncomment if MSR
 %         tr_ind = find(indices~=si); % comment if not UCF
 %         te_ind = find(indices==si); % comment if not UCF
         
+%         % slide window
+%         [feat_tr,fl_tr] = chopFeature(data.features(tr_ind));
+%         unique_fl_tr = unique(fl_tr);
+%         HH_tr = getHH(feat_tr);
+%         [label,HH_centers,sD,cparams] = ncutJLD(HH_tr,n_classes,opt);
+%         D_tr = HHdist(HH_centers,HH_tr,opt.metric);
+%         [~,label_tr] = min(D_tr);
+%         hFeat_tr = zeros(n_classes,length(unique_fl_tr));
+%         for i = 1:length(unique_fl_tr)
+%             hFeat_tr(:,i) = hist(label_tr(fl_tr==unique_fl_tr(i)),1:n_classes);
+%         end
+%         [feat_te,fl_te] = chopFeature(data.features(te_ind));
+%         unique_fl_te = unique(fl_te);
+%         HH_te = getHH(feat_te);
+%         D_te = HHdist(HH_centers,HH_te,opt.metric);
+%         [~,label_te] = min(D_te);
+%         hFeat_te = zeros(n_classes,length(unique_fl_te));
+%         for i = 1:length(unique_fl_te)
+%             hFeat_te(:,i) = hist(label_te(fl_te==unique_fl_te(i)),1:n_classes);
+%         end
+%         X_train = hFeat_tr;
+%         y_train = action_labels(tr_ind);
+%         X_test = hFeat_te;
+%         y_test = action_labels(te_ind);
+%         [total_accuracy(si), cw_accuracy(si,:), confusion_matrices{si}] =...
+%             svm_one_vs_all(X_train, X_test, y_train, y_test, C_val);
+
         X_train = HH(tr_ind);
         nTrain = length(X_train);
         y_train = action_labels(tr_ind);
@@ -171,24 +200,27 @@ for set = 1:n_action_sets % uncomment if MSR
         unique_classes = unique(y_train);
         n_classes = length(unique_classes);
         % train NN
-        HH_center = cell(1, n_classes);
-%         cparams(1:n_classes) = struct ('prior',0,'alpha',0,'theta',0);
-        for ai = 1:n_classes
-            X_tmp = X_train(y_train==unique_classes(ai));
-%             HH_center{ai} = karcher(X_tmp{1:end});
-%             HH_center{ai} = karchermean(X_tmp);
-            HH_center{ai} = steinMean(cat(3,X_tmp{1:end}));
-%             HH_center{ai} = incSteinMean(cat(3,X_tmp{1:end}));
-%             d = HHdist(HH_center(ai),X_tmp,opt.metric);
-%             d(abs(d)<1e-6) = 1e-6;
-% %             phat = gamfit(d);
-%             phat = mle(d,'pdf',@gampdf,'start',[1 1],'lowerbound',[0 0],'upperbound',[1.5 inf]);
-%             cparams(ai).alpha = min(100,phat(1));
-%             if isinf(cparams(ai).alpha), keyboard;end
-%             cparams(ai).theta = max(0.01,phat(2));
-%             cparams(ai).prior = length(X_tmp) / length(X_train);
-            fprintf('processed %d/%d\n',ai,n_classes);
-        end
+        D = HHdist(X_train,X_train,opt.metric); % uncomment if opt.metric=='binlong'
+        centerInd = findCenters(D,y_train); % uncomment if opt.metric=='binlong'
+        HH_center = X_train(centerInd); % uncomment if opt.metric=='binlong'
+%         HH_center = cell(1, n_classes);
+% %         cparams(1:n_classes) = struct ('prior',0,'alpha',0,'theta',0);
+%         for ai = 1:n_classes
+%             X_tmp = X_train(y_train==unique_classes(ai));
+% %             HH_center{ai} = karcher(X_tmp{1:end});
+% %             HH_center{ai} = karchermean(X_tmp);
+%             HH_center{ai} = steinMean(cat(3,X_tmp{1:end}));
+% %             HH_center{ai} = incSteinMean(cat(3,X_tmp{1:end}));
+% %             d = HHdist(HH_center(ai),X_tmp,opt.metric);
+% %             d(abs(d)<1e-6) = 1e-6;
+% % %             phat = gamfit(d);
+% %             phat = mle(d,'pdf',@gampdf,'start',[1 1],'lowerbound',[0 0],'upperbound',[1.5 inf]);
+% %             cparams(ai).alpha = min(100,phat(1));
+% %             if isinf(cparams(ai).alpha), keyboard;end
+% %             cparams(ai).theta = max(0.01,phat(2));
+% %             cparams(ai).prior = length(X_tmp) / length(X_train);
+%             fprintf('processed %d/%d\n',ai,n_classes);
+%         end
         % test NN
         D2 = HHdist(HH_center,X_test,opt.metric);
         [~,ind] = min(D2);
@@ -327,7 +359,7 @@ for set = 1:n_action_sets % uncomment if MSR
     save ([results_dir, '/classification_results_as', num2str(set), '.mat'],...
         'total_accuracy', 'cw_accuracy', 'avg_total_accuracy',...
         'avg_cw_accuracy', 'confusion_matrices', 'avg_confusion_matrix');
-end % comment if MSR OR UCF
+% end % comment if MSR OR UCF
 
 %     %% Temporal modeling
 %     disp ('Temporal modeling')

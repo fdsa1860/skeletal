@@ -11,6 +11,7 @@ function [label,X_center,D,cparams] = ncutJLD(X,k,opt)
 % D2 = zeros(N);
 D = HHdist(X,[],opt.metric);
 % load sD;
+% load sD_MSR_seg_L11;
 % D = sD;
 
 kNN = 10;
@@ -30,25 +31,27 @@ label = sortLabel_count(NcutDiscrete);
 
 cparams(1:k) = struct ('alpha',0,'theta',0);
 X_center = cell(1, k);
-% for j=1:k
-%     if strcmp(opt.metric,'JLD')
-%         if nnz(label==j)>1
+for j=1:k
+    if strcmp(opt.metric,'JLD')
+        if nnz(label==j)>1
 %             X_center{j} = karchermean(X(label==j));
-%         elseif nnz(label==j)==1
-%             X_center{j} = X{label==j};
-%         elseif nnz(label==j)==0
-%             error('cluster is empty.\n');
-%         end
-%         d = HHdist(X_center(j),X(label==j),'JLD');
-%         d(abs(d)<1e-6) = 1e-6;
+            X_center{j} = steinMean(cat(3,X{label==j}));
+        elseif nnz(label==j)==1
+            X_center{j} = X{label==j};
+        elseif nnz(label==j)==0
+            error('cluster is empty.\n');
+        end
+        d = HHdist(X_center(j),X(label==j),'JLD');
+        d(abs(d)<1e-6) = 1e-6;
 %         param = gamfit(d);
-%         cparams(j).alpha = min(100,param(1));
-%         if isinf(cparams(j).alpha), keyboard;end
-%         cparams(j).theta = max(0.01,param(2));
-%     elseif strcmp(opt.metric,'binlong')
-%         X_center{j} = findCenter(X(label==j));
-%     end
-% end
+        phat = mle(d,'pdf',@gampdf,'start',[1 1],'lowerbound',[0 0],'upperbound',[1.5 inf]);
+        cparams(j).alpha = min(100,phat(1));
+        if isinf(cparams(j).alpha), keyboard;end
+        cparams(j).theta = max(0.01,phat(2));
+    elseif strcmp(opt.metric,'binlong')
+        X_center{j} = findCenter(X(label==j));
+    end
+end
 
 end
 

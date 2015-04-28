@@ -1,6 +1,7 @@
-function [newHH,newSub,newAct] = getNewHH(o)
+function [newFeat,newHH,newSub,newAct] = getNewHH(o)
 
 s = size(o);
+newFeat = cell(s);
 newHH = cell(s);
 newSub = zeros(s);
 newAct = zeros(s);
@@ -13,6 +14,7 @@ for k = 1:s(3)
             joint_locations(:,7,:) = [];
             S = size(joint_locations);
             features = reshape(joint_locations, S(1)*S(2), S(3));
+            newFeat{i,j,k} = features;
             newHH(i,j,k) = getHH({features});
             newSub(i,j,k) = j;
             if i==1
@@ -24,6 +26,8 @@ for k = 1:s(3)
     end
 end
 
+newFeat(newAct==0) = [];
+newFeat = newFeat(:);
 newHH(newAct==0) = [];
 newHH = newHH(:)';
 newSub(newAct==0) = [];
